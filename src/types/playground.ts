@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ToolCall {
   role: 'user' | 'tool' | 'system' | 'assistant'
   content: string | null
@@ -95,6 +96,8 @@ export interface ResponseAudio {
   sample_rate?: number
 }
 export interface RunResponse {
+  response: string
+  tool_results?: any
   content?: string | object
   content_type: string
   context?: MessageContext[]
@@ -139,6 +142,7 @@ export interface ReasoningMessage {
   created_at?: number
 }
 export interface PlaygroundChatMessage {
+  tool_results?: any
   role: 'user' | 'agent' | 'system' | 'tool'
   content: string
   streamingError?: boolean

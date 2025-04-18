@@ -6,7 +6,6 @@ import useChatActions from '@/hooks/useChatActions'
 import { usePlaygroundStore } from '../store'
 import { type RunResponse } from '@/types/playground'
 import { constructEndpointUrl } from '@/lib/constructEndpointUrl'
-import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
 
 /**
@@ -17,14 +16,14 @@ const useAIChatHandler = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
   const { addMessage, focusChatInput } = useChatActions()
   const [agentId] = useQueryState('agent')
-  const [sessionId, setSessionId] = useQueryState('session')
+  // const [sessionId, setSessionId] = useQueryState('session')
   const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
   const setErrorMessage = usePlaygroundStore(
     (state) => state.setStreamingErrorMessage
   )
   const setIsLoading = usePlaygroundStore((state) => state.setIsStreaming)
-  const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
-  const hasStorage = usePlaygroundStore((state) => state.hasStorage)
+  // const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
+  // const hasStorage = usePlaygroundStore((state) => state.hasStorage)
 
   const updateMessagesWithErrorState = useCallback(() => {
     setMessages((prevMessages) => {
@@ -89,7 +88,7 @@ const useAIChatHandler = () => {
 
         // Don't stream - set stream to false
         formData.append('stream', 'false')
-        formData.append('session_id', sessionId ?? '')
+        // formData.append('session_id', sessionId ?? '')
 
         const response = await fetch(playgroundRunUrl, {
           method: 'POST',
@@ -175,7 +174,7 @@ const useAIChatHandler = () => {
         setIsLoading(false)
       }
     },
-    [setMessages, addMessage, updateMessagesWithErrorState, selectedEndpoint, agentId, setErrorMessage, setIsLoading, focusChatInput, sessionId]
+    [setMessages, addMessage, updateMessagesWithErrorState, selectedEndpoint, agentId, setErrorMessage, setIsLoading, focusChatInput]
   )
 
   return { handleResponse }
