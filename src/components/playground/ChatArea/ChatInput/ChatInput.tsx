@@ -4,14 +4,14 @@ import { toast } from 'sonner'
 import { TextArea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundStore } from '@/store'
-import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
 import { useQueryState } from 'nuqs'
 import Icon from '@/components/ui/icon'
+import useAIChatHandler from '@/hooks/useAIChatHandler'
 
 const ChatInput = () => {
   const { chatInputRef } = usePlaygroundStore()
 
-  const { handleStreamResponse } = useAIChatStreamHandler()
+  const { handleResponse } = useAIChatHandler()
   const [selectedAgent] = useQueryState('agent')
   const [inputMessage, setInputMessage] = useState('')
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
@@ -22,7 +22,7 @@ const ChatInput = () => {
     setInputMessage('')
 
     try {
-      await handleStreamResponse(currentMessage)
+      await handleResponse(currentMessage)
     } catch (error) {
       toast.error(
         `Error in handleSubmit: ${

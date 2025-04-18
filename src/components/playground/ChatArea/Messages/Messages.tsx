@@ -92,7 +92,7 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
             </div>
           </div>
         )}
-      {message.tool_calls && message.tool_calls.length > 0 && (
+      {/* {message.tool_calls && message.tool_calls.length > 0 && (
         <div className="flex items-center gap-3">
           <Tooltip
             delayDuration={0}
@@ -119,7 +119,28 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
             ))}
           </div>
         </div>
+      )} */}
+      {message.tool_results && (
+        <div className="flex items-center gap-3">
+          <Tooltip
+            delayDuration={0}
+            content={<p className="text-accent">Tool Calls</p>}
+            side="top"
+          >
+            <Icon
+              type="hammer"
+              className="rounded-lg bg-background-secondary p-1"
+              size="sm"
+              color="secondary"
+            />
+          </Tooltip>
+
+          <div className="flex flex-wrap gap-2">
+            {JSON.stringify(message.tool_results, null, 2)}
+          </div>
+        </div>
       )}
+
       <AgentMessage message={message} />
     </div>
   )
