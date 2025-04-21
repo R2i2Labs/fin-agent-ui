@@ -95,6 +95,7 @@ const Endpoint = () => {
   const handleReset = async () => {
     try {
       await resetPlaygroundAPI(selectedEndpoint)
+      window?.location?.reload()
     } catch {
       throw Error("Error resetting")
     }
