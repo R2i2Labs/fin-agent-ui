@@ -61,7 +61,13 @@ export const getAllPlaygroundSessionsAPI = async (
       }
       throw new Error(`Failed to fetch sessions: ${response.statusText}`)
     }
-    return response.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await response.json())?.conversations?.map((c: any) => ({
+      session_id: c?.id?.toString(),
+      title: c.name,
+      created_at: c.created_at
+    }))
+    return data
   } catch {
     return []
   }

@@ -16,14 +16,14 @@ const useAIChatHandler = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
   const { addMessage, focusChatInput } = useChatActions()
   const [agentId] = useQueryState('agent')
-  // const [sessionId, setSessionId] = useQueryState('session')
+  const [sessionId, setSessionId] = useQueryState('session')
   const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
   const setErrorMessage = usePlaygroundStore(
     (state) => state.setStreamingErrorMessage
   )
   const setIsLoading = usePlaygroundStore((state) => state.setIsStreaming)
-  // const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
-  // const hasStorage = usePlaygroundStore((state) => state.hasStorage)
+  const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
+  const hasStorage = usePlaygroundStore(() => true)
 
   const updateMessagesWithErrorState = useCallback(() => {
     setMessages((prevMessages) => {
@@ -79,9 +79,9 @@ const useAIChatHandler = () => {
 
       try {
         if (!agentId) return
-        
+
         const endpointUrl = constructEndpointUrl(selectedEndpoint)
-        const playgroundRunUrl = APIRoutes.AgentRun(endpointUrl).replace(
+        let playgroundRunUrl = APIRoutes.AgentRun(endpointUrl).replace(
           '{agent_id}',
           agentId
         )
@@ -90,9 +90,13 @@ const useAIChatHandler = () => {
         formData.append('stream', 'false')
         // formData.append('session_id', sessionId ?? '')
 
+        if (sessionId) {
+          playgroundRunUrl += `?conversation_id=${sessionId}`
+        }
+
         const response = await fetch(playgroundRunUrl, {
           method: 'POST',
-          body: JSON.stringify({query: input}),
+          body: JSON.stringify({ query: input }),
           headers: {
             "content-type": "application/json"
           }
@@ -104,51 +108,51 @@ const useAIChatHandler = () => {
         }
 
         const responseData: RunResponse = await response.json()
-        
+
         // Handle session ID if it's new
-        // if (responseData.session_id && responseData.session_id !== sessionId) {
-        //   const newSessionId = responseData.session_id
-        //   setSessionId(newSessionId)
-          
-        //   if (hasStorage) {
-        //     const placeHolderSessionData = {
-        //       session_id: newSessionId,
-        //       title: formData.get('message') as string,
-        //       created_at: Math.floor(Date.now() / 1000)
-        //     }
-            
-        //     setSessionsData((prevSessionsData) => [
-        //       placeHolderSessionData,
-        //       ...(prevSessionsData ?? [])
-        //     ])
-        //   }
-        // }
+        if (responseData.conversation_id && responseData.conversation_id.toString() !== sessionId) {
+          const newSessionId = responseData.conversation_id
+          setSessionId((newSessionId.toString()))
+
+          if (hasStorage) {
+            const placeHolderSessionData = {
+              session_id: newSessionId.toString(),
+              title: formData.get('message') as string,
+              created_at: Math.floor(Date.now() / 1000)
+            }
+
+            setSessionsData((prevSessionsData) => [
+              placeHolderSessionData,
+              ...(prevSessionsData ?? [])
+            ])
+          }
+        }
 
         // Update the agent message with the complete response
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages]
           const lastMessage = newMessages[newMessages.length - 1]
           console.log(lastMessage);
-          
-          
+
+
           // if (lastMessage && lastMessage.role === 'agent') {
           //   // Update content
-          //   lastMessage.content = typeof responseData.content === 'string' 
-          //     ? responseData.content 
+          //   lastMessage.content = typeof responseData.content === 'string'
+          //     ? responseData.content
           //     : JSON.stringify(responseData.content)
-            
+
           //   // Update tool calls if present
           //   if (responseData.tools && responseData.tools.length > 0) {
           //     lastMessage.tool_calls = responseData.tools as ToolCall[]
           //   }
-            
+
           //   // Update other properties
           //   lastMessage.created_at = responseData.created_at ?? lastMessage.created_at
           //   lastMessage.images = responseData.images
           //   lastMessage.videos = responseData.videos
           //   lastMessage.audio = responseData.audio
           //   lastMessage.response_audio = responseData.response_audio
-            
+
           //   // Update extra data
           //   if (responseData.extra_data) {
           //     lastMessage.extra_data = {
@@ -160,10 +164,10 @@ const useAIChatHandler = () => {
 
           lastMessage.content = responseData.response
           lastMessage.tool_results = responseData.tool_results;
-          
+
           return newMessages
         })
-        
+
       } catch (error) {
         updateMessagesWithErrorState()
         setErrorMessage(
@@ -174,7 +178,7 @@ const useAIChatHandler = () => {
         setIsLoading(false)
       }
     },
-    [setMessages, addMessage, updateMessagesWithErrorState, selectedEndpoint, agentId, setErrorMessage, setIsLoading, focusChatInput]
+    [setIsLoading, setMessages, addMessage, agentId, selectedEndpoint, sessionId, setSessionId, hasStorage, setSessionsData, updateMessagesWithErrorState, setErrorMessage, focusChatInput]
   )
 
   return { handleResponse }

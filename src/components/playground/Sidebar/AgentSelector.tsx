@@ -29,6 +29,8 @@ export function AgentSelector() {
     if (agentId && agents.length > 0) {
       const agent = agents.find((agent) => agent.value === agentId)
       if (agent) {
+        console.log(agent);
+
         setSelectedModel(agent.model.provider || '')
         setHasStorage(!!agent.storage)
         if (agent.model.provider) {

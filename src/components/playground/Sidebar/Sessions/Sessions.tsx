@@ -100,11 +100,15 @@ const Sessions = () => {
   }, [hydrated])
 
   useEffect(() => {
+    console.log({ hasStorage, selectedEndpoint, agentId });
+
     if (!selectedEndpoint || !agentId || !hasStorage) {
+      console.log("hasjds");
       setSessionsData(() => null)
       return
     }
     if (!isEndpointLoading) {
+
       setSessionsData(() => null)
       getSessions(agentId)
     }

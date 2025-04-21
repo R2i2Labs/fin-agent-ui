@@ -39,6 +39,8 @@ const useAIChatStreamHandler = () => {
     })
   }, [setMessages])
 
+
+
   const handleStreamResponse = useCallback(
     async (input: string | FormData) => {
       setIsStreaming(true)

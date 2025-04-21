@@ -1,25 +1,25 @@
 export const APIRoutes = {
   GetPlaygroundAgents: (PlaygroundApiUrl: string) =>
-    `${PlaygroundApiUrl}/v1/playground/agents`,
+    `${PlaygroundApiUrl}/agents`,
   AgentRun: (PlaygroundApiUrl: string) =>
-    `${PlaygroundApiUrl}/v1/playground/agents/{agent_id}/runs`,
+    `${PlaygroundApiUrl}/{agent_id}/query`,
   PlaygroundStatus: (PlaygroundApiUrl: string) =>
-    `${PlaygroundApiUrl}/v1/playground/status`,
+    `${PlaygroundApiUrl}/status`,
   PlaygroundReset: (PlaygroundApiUrl: string) =>
     `${PlaygroundApiUrl}/reset`,
   GetPlaygroundSessions: (PlaygroundApiUrl: string, agentId: string) =>
-    `${PlaygroundApiUrl}/v1/playground/agents/${agentId}/sessions`,
+    `${PlaygroundApiUrl}/${agentId}/conversations`,
   GetPlaygroundSession: (
     PlaygroundApiUrl: string,
     agentId: string,
     sessionId: string
   ) =>
-    `${PlaygroundApiUrl}/v1/playground/agents/${agentId}/sessions/${sessionId}`,
+    `${PlaygroundApiUrl}/${agentId}/conversations/${sessionId}`,
 
   DeletePlaygroundSession: (
     PlaygroundApiUrl: string,
     agentId: string,
     sessionId: string
   ) =>
-    `${PlaygroundApiUrl}/v1/playground/agents/${agentId}/sessions/${sessionId}`
+    `${PlaygroundApiUrl}/agents/${agentId}/sessions/${sessionId}`
 }

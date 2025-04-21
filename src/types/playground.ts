@@ -2,7 +2,7 @@
 export interface ToolCall {
   role: 'user' | 'tool' | 'system' | 'assistant'
   content: string | null
-  tool_call_id: string
+  id: string
   tool_name: string
   tool_args: Record<string, string>
   tool_call_error: boolean
@@ -96,6 +96,7 @@ export interface ResponseAudio {
   sample_rate?: number
 }
 export interface RunResponse {
+  conversation_id: number
   response: string
   tool_results?: any
   content?: string | object
