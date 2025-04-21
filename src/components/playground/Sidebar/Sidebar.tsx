@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
 import { truncateText } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { resetPlaygroundAPI } from '@/api/playground'
 const ENDPOINT_PLACEHOLDER = 'NO ENDPOINT ADDED'
 const SidebarHeader = () => (
   <div className="flex items-center gap-2">
@@ -91,6 +92,18 @@ const Endpoint = () => {
     setMessages([])
   }
 
+  const handleReset = async () => {
+    try {
+      await resetPlaygroundAPI(selectedEndpoint)
+    } catch {
+      throw Error("Error resetting")
+    }
+    setIsHovering(false)
+    setAgents([])
+    setSessionsData([])
+    setMessages([])
+  }
+
   const handleCancel = () => {
     setEndpointValue(selectedEndpoint)
     setIsEditing(false)
@@ -134,65 +147,77 @@ const Endpoint = () => {
           </Button>
         </div>
       ) : (
-        <div className="flex w-full items-center gap-1">
-          <motion.div
-            className="relative flex h-9 w-full cursor-pointer items-center justify-between rounded-xl border border-primary/15 bg-accent p-3 uppercase"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-            onClick={() => setIsEditing(true)}
-            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-          >
-            <AnimatePresence mode="wait">
-              {isHovering ? (
-                <motion.div
-                  key="endpoint-display-hover"
-                  className="absolute inset-0 flex items-center justify-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <p className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-primary">
-                    <Icon type="edit" size="xxs" /> EDIT ENDPOINT
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="endpoint-display"
-                  className="absolute inset-0 flex items-center justify-between px-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <p className="text-xs font-medium text-muted">
-                    {isMounted
-                      ? truncateText(selectedEndpoint, 21) ||
-                        ENDPOINT_PLACEHOLDER
-                          : 'http://localhost:6767'}
-                  </p>
-                  <div
-                    className={`size-2 shrink-0 rounded-full ${getStatusColor(isEndpointActive)}`}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleRefresh}
-            className="hover:cursor-pointer hover:bg-transparent"
-          >
+        <>
+          <div className="flex w-full items-center gap-1">
             <motion.div
-              key={isRotating ? 'rotating' : 'idle'}
-              animate={{ rotate: isRotating ? 360 : 0 }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
+              className="relative flex h-9 w-full cursor-pointer items-center justify-between rounded-xl border border-primary/15 bg-accent p-3 uppercase"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+              onClick={() => setIsEditing(true)}
+              transition={{ type: 'spring', stiffness: 400, damping: 10 }}
             >
-              <Icon type="refresh" size="xs" />
+              <AnimatePresence mode="wait">
+                {isHovering ? (
+                  <motion.div
+                    key="endpoint-display-hover"
+                    className="absolute inset-0 flex items-center justify-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <p className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-primary">
+                      <Icon type="edit" size="xxs" /> EDIT ENDPOINT
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="endpoint-display"
+                    className="absolute inset-0 flex items-center justify-between px-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <p className="text-xs font-medium text-muted">
+                      {isMounted
+                        ? truncateText(selectedEndpoint, 21) ||
+                        ENDPOINT_PLACEHOLDER
+                        : 'http://localhost:6767'}
+                    </p>
+                    <div
+                      className={`size-2 shrink-0 rounded-full ${getStatusColor(isEndpointActive)}`}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              className="hover:cursor-pointer hover:bg-transparent"
+            >
+              <motion.div
+                key={isRotating ? 'rotating' : 'idle'}
+                animate={{ rotate: isRotating ? 360 : 0 }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+              >
+                <Icon type="refresh" size="xs" />
+              </motion.div>
+            </Button>
+
+          </div>
+          <Button
+            variant="link"
+            size="icon"
+            onClick={handleReset}
+            className="underline"
+          >
+            Reset
           </Button>
-        </div>
+        </>
+
       )}
     </div>
   )

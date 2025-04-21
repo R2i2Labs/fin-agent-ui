@@ -36,6 +36,13 @@ export const getPlaygroundStatusAPI = async (base: string): Promise<number> => {
   return response.status
 }
 
+export const resetPlaygroundAPI = async (base: string): Promise<number> => {
+  const response = await fetch(APIRoutes.PlaygroundReset(base), {
+    method: 'GET'
+  })
+  return response.status
+}
+
 export const getAllPlaygroundSessionsAPI = async (
   base: string,
   agentId: string
