@@ -1,6 +1,8 @@
 export const APIRoutes = {
   GetPlaygroundAgents: (PlaygroundApiUrl: string) =>
     `${PlaygroundApiUrl}/agents`,
+  FileUpload: (PlaygroundApiUrl: string) =>
+    `${PlaygroundApiUrl}/file-upload`,
   AgentRun: (PlaygroundApiUrl: string) =>
     `${PlaygroundApiUrl}/{agent_id}/query`,
   PlaygroundStatus: (PlaygroundApiUrl: string) =>

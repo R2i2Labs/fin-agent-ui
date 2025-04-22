@@ -29,6 +29,15 @@ export const getPlaygroundAgentsAPI = async (
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const uploadDatasetFileAPI = async (base: string, payload: any): Promise<any> => {
+  const response = await fetch(APIRoutes.FileUpload(base), {
+    method: 'POST',
+    body: payload
+  })
+  return response
+}
+
 export const getPlaygroundStatusAPI = async (base: string): Promise<number> => {
   const response = await fetch(APIRoutes.PlaygroundStatus(base), {
     method: 'GET'
