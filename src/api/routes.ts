@@ -21,5 +21,5 @@ export const APIRoutes = {
     agentId: string,
     sessionId: string
   ) =>
-    `${PlaygroundApiUrl}/agents/${agentId}/sessions/${sessionId}`
+    `${PlaygroundApiUrl}/${agentId}/conversations/${sessionId}`
 }
