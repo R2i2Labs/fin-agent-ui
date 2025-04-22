@@ -1,0 +1,104 @@
+name: Deploy to Digital Ocean
+
+on:
+  workflow_run:
+    workflows:
+      - Build Project
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch != 'dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node_version || '18' }}
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Deploy to Digital Ocean
+        env:
+          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PROJECT_NAME: ${{ inputs.project_name || 'fin-agent-fe' }}
+          BRANCH: ${{ inputs.branch || 'main' }}
+          REPO_SSH_URL: "git@github.com:R2i2Labs/fin-agent-fe.git"
+          ENTRYPOINT: ${{ inputs.entrypoint || '' }}
+          BUILD_COMMAND: ${{ inputs.build_command || 'pnpm run build' }}
+          INSTALL_COMMAND: ${{ inputs.install_command || 'pnpm ci' }}
+          SERVE_COMMAND: ${{ inputs.serve_command || format('PORT=6868 nohup pnpm start > out.log 2>&1 &', secrets.DOMAIN) }}
+          SERVER_BASE_DIR: ${{ inputs.server_base_dir || '/home/dikshant/r2i2/projects' }}
+          DEFAULT_NODE_VERSION: ${{ inputs.node_version || '18' }}
+          DEFAULT_PORT: ${{ inputs.port || '6868' }}
+        run: |
+          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SERVER_USERNAME@$SERVER_IP << 'EOF'
+          set -e  # Exit on any error
+
+          PROJECT_NAME="${{ env.PROJECT_NAME }}"
+          REPO_SSH_URL="${{ env.REPO_SSH_URL }}"
+          BRANCH="${{ env.BRANCH }}"
+          PORT="${{ env.DEFAULT_PORT }}"
+          NODE_VERSION="${{ env.DEFAULT_NODE_VERSION }}"
+          BUILD_COMMAND="${{ env.BUILD_COMMAND }}"
+          INSTALL_COMMAND="${{ env.INSTALL_COMMAND }}"
+          SERVE_COMMAND="${{ env.SERVE_COMMAND }}"
+          SERVER_BASE_DIR="${{ env.SERVER_BASE_DIR }}"
+          ENTRYPOINT_DIR="${{ env.ENTRYPOINT }}"
+          PROJECT_IDENTIFIER="$PROJECT_NAME-$PORT"
+          PROJECT_DIR="$SERVER_BASE_DIR/$PROJECT_NAME"
+          ENV_FILE="$PROJECT_DIR/$ENTRYPOINT_DIR/.env"
+
+          echo "Deploying branch '$BRANCH' of project '$PROJECT_NAME' on port '$PORT'..."
+
+          # Create base directory if it doesn't exist
+          mkdir -p $SERVER_BASE_DIR
+
+          # Repository management
+          if [ ! -d "$PROJECT_DIR" ]; then
+            echo "Project directory does not exist. Cloning repository..."
+            git clone --branch "$BRANCH" "$REPO_SSH_URL" "$PROJECT_DIR"
+          else
+            echo "Project directory exists. Pulling latest changes..."
+            cd $PROJECT_DIR
+            git fetch --all
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+          fi
+
+          cd $PROJECT_DIR/$ENTRYPOINT_DIR
+
+          # Node.js setup
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install $NODE_VERSION
+          nvm use $NODE_VERSION
+
+          # Add or replace the .env file
+          echo "${{ secrets.DOTENV_FILE }}" > "$ENV_FILE"
+
+          eval "$INSTALL_COMMAND"
+          eval "$BUILD_COMMAND"
+
+          if lsof -i :$PORT >/dev/null 2>&1; then
+            echo "Stopping existing process on port $PORT..."
+            fuser -k $PORT/tcp
+            sleep 3  # Give it time to fully stop
+          fi
+          
+          echo "Starting server on port $PORT..."
+          eval "$SERVE_COMMAND"
+          echo "Deployment successful! Application running with PM2 on port $PORT"
+          EOF
