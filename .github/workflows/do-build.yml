@@ -38,7 +38,7 @@ jobs:
           REPO_SSH_URL: "git@github.com:R2i2Labs/fin-agent-ui.git"
           ENTRYPOINT: ${{ inputs.entrypoint || '' }}
           BUILD_COMMAND: ${{ inputs.build_command || 'pnpm run build' }}
-          INSTALL_COMMAND: ${{ inputs.install_command || 'pnpm ci' }}
+          INSTALL_COMMAND: ${{ inputs.install_command || 'pnpm i' }}
           SERVE_COMMAND: ${{ inputs.serve_command || format('PORT=6868 nohup pnpm start > out.log 2>&1 &', secrets.DOMAIN) }}
           SERVER_BASE_DIR: ${{ inputs.server_base_dir || '/home/dikshant/r2i2/projects' }}
           DEFAULT_NODE_VERSION: ${{ inputs.node_version || '18' }}
