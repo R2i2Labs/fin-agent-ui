@@ -33,9 +33,9 @@ jobs:
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          PROJECT_NAME: ${{ inputs.project_name || 'fin-agent-fe' }}
+          PROJECT_NAME: ${{ inputs.project_name || 'fin-agent-ui' }}
           BRANCH: ${{ inputs.branch || 'main' }}
-          REPO_SSH_URL: "git@github.com:R2i2Labs/fin-agent-fe.git"
+          REPO_SSH_URL: "git@github.com:R2i2Labs/fin-agent-ui.git"
           ENTRYPOINT: ${{ inputs.entrypoint || '' }}
           BUILD_COMMAND: ${{ inputs.build_command || 'pnpm run build' }}
           INSTALL_COMMAND: ${{ inputs.install_command || 'pnpm ci' }}
