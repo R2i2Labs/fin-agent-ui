@@ -91,12 +91,9 @@ jobs:
 
           eval "$INSTALL_COMMAND"
           eval "$BUILD_COMMAND"
-
-          if lsof -i :$PORT >/dev/null 2>&1; then
-            echo "Stopping existing process on port $PORT..."
-            fuser -k $PORT/tcp
-            sleep 3  # Give it time to fully stop
-          fi
+          echo "Stopping existing process on port $PORT..."
+          fuser -k $PORT/tcp
+          sleep 3 
           
           echo "Starting server on port $PORT..."
           eval "$SERVE_COMMAND"
