@@ -23,9 +23,12 @@ jobs:
         with:
           node-version: ${{ inputs.node_version || '18' }}
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Create .env file
         run: echo "${{ secrets.DOTENV_FILE }}" > .env
-        
+
       - name: Install dependencies
         run: pnpm install
 
