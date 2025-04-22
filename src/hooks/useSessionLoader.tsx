@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback } from 'react'
 import {
   getPlaygroundSessionAPI,
@@ -5,9 +6,6 @@ import {
 } from '@/api/playground'
 import { usePlaygroundStore } from '../store'
 import { toast } from 'sonner'
-import {
-  PlaygroundChatMessage,
-} from '@/types/playground'
 
 interface MessageResponse {
   id: number;
@@ -21,16 +19,6 @@ interface MessageResponse {
 }
 
 interface SessionResponse {
-  // Original format
-  // session_id?: string;
-  // user_id?: string | null;
-  // memory?: {
-  //   runs?: ChatEntry[];
-  //   chats?: ChatEntry[];
-  // };
-  // agent_data?: Record<string, unknown>;
-
-  // New database format
   id?: number;
   name?: string;
   agent_id?: string;
@@ -67,191 +55,109 @@ const useSessionLoader = () => {
     [selectedEndpoint, setSessionsData, setIsSessionsLoading]
   )
 
-  // Function to convert the database messages to PlaygroundChatMessage format
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function processMessagesFromDatabase(messages: any[]): any[] {
     // Group function calls with their outputs
     const functionCallMap = new Map();
+    // Track which function calls should be attached to which NEXT agent message
+    const pendingFunctionCalls = [];
+    const processedMessages = [];
 
-    // First pass: collect all function calls and their outputs
-    messages.forEach(message => {
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+
+    // Process function calls and their outputs
       if (message.message_type === 'function_call') {
         // Store the function call
         functionCallMap.set(message.call_id, {
           call: message,
           results: []
         });
-      } else if (message.message_type === 'function_call_output' && functionCallMap.has(message.call_id)) {
-        // Add the output to the corresponding function call
-        const functionCallData = functionCallMap.get(message.call_id);
-        functionCallData.results.push(message);
+        // Add to pending list to be attached to the next agent message
+        pendingFunctionCalls.push(message.call_id);
+        continue;
       }
-    });
 
-    // Process messages and combine function calls with their outputs
-    const processedMessages = messages
-      .filter(message =>
-        // Filter out function call outputs as they'll be combined with their calls
-        message.message_type !== 'function_call_output' &&
-        // Only include actual agent/user messages and function_call_result type messages
-        (message.role === 'user' ||
-          message.role === 'agent' ||
-          message.role === 'assistant' ||
-          message.message_type === 'function_call_result')
-      )
-      .map(message => {
-        // Convert timestamp to Unix timestamp (seconds)
-        const created_at = new Date(message.timestamp).getTime() / 1000;
-
-        // Base message structure
-        const baseMessage: PlaygroundChatMessage = {
-          role: (message.role || 'system') as 'user' | 'agent' | 'system' | 'tool',
-          content: message.content || '',
-          created_at: created_at,
-          streamingError: false
-        };
-
-        // Handle agent messages
-        if (message.role === 'agent' || message.role === 'assistant') {
-          try {
-            // Try to parse potential JSON content for extra data
-            let extraData = {};
-            const toolResults = null;
-
-            // Process reasoning/extra data
-            if (message.message_type === 'extra_data' || message.message_type === 'reasoning') {
-              try {
-                const parsedContent = JSON.parse(message.content);
-                if (parsedContent.reasoning_steps) {
-                  extraData = {
-                    ...extraData,
-                    reasoning_steps: parsedContent.reasoning_steps
-                  };
-                }
-                if (parsedContent.references) {
-                  extraData = {
-                    ...extraData,
-                    references: parsedContent.references
-                  };
-                }
-                if (parsedContent.reasoning_messages) {
-                  extraData = {
-                    ...extraData,
-                    reasoning_messages: parsedContent.reasoning_messages
-                  };
-                }
-              } catch {
-                // Not JSON or not containing expected fields, continue
-              }
-            }
-
-            // Return agent message with extras
-            return {
-              ...baseMessage,
-              tool_calls: [],
-              tool_results: toolResults,
-              extra_data: Object.keys(extraData).length > 0 ? extraData : undefined,
-              role: 'agent'
-            };
-          } catch {
-            return {
-              ...baseMessage,
-              role: 'agent'
-            };
-          }
-        }
-
-        // Handle function call messages
-        else if (message.message_type === 'function_call') {
+      if (message.message_type === 'function_call_output') {
+        if (functionCallMap.has(message.call_id)) {
+          // Add the output to the corresponding function call
           const functionCallData = functionCallMap.get(message.call_id);
+          functionCallData.results.push(message);
+        }
+        continue;
+      }
 
+      // Process agent and user messages
+      const created_at = new Date(message.timestamp).getTime() / 1000;
+
+      // Base message structure
+      const baseMessage = {
+        role: (message.role || 'system') as 'user' | 'agent' | 'system' | 'tool',
+        content: message.content || '',
+        created_at: created_at,
+        streamingError: false
+      };
+
+      // For agent messages, attach any pending function call results
+      if (message.role === 'agent' || message.role === 'assistant') {
+        const toolResults = [];
+
+        // Process all pending function calls
+        for (const callId of pendingFunctionCalls) {
+          const functionCallData = functionCallMap.get(callId);
           if (functionCallData) {
-            const toolResults = functionCallData.results.map((result: { content: string }) => {
+            for (const result of functionCallData.results) {
               try {
-                // Try to parse the content as JSON
+                // Process the result content
                 let parsedContent;
                 try {
                   parsedContent = JSON.parse(result.content.replace(/'/g, '"'));
                 } catch {
-                  // If direct parsing fails, try evaluating it as a Python-like dict
                   try {
-                    // Handle Python-style dictionaries with single quotes
                     const jsObject = result.content
-                      .replace(/'/g, '"')
-                      .replace(/None/g, 'null')
-                      .replace(/True/g, 'true')
-                      .replace(/False/g, 'false');
-                    parsedContent = JSON.parse(jsObject);
+                    parsedContent = JSON.parse((jsObject));
+                    if (parsedContent?.['result']) {
+                      parsedContent.result = JSON.parse(parsedContent.result)
+                    }
                   } catch {
                     parsedContent = result.content;
                   }
                 }
-
-                return {
-                  tool: message.function_name,
-                  arguments: message.content ? JSON.parse(message.content) : {},
+                // Add to tool results
+                toolResults.push({
+                  tool: functionCallData.call.function_name,
+                  arguments: functionCallData.call.content ? JSON.parse(functionCallData.call.content) : {},
                   result: parsedContent
-                };
+                });
               } catch {
-                return {
-                  tool: message.function_name,
-                  arguments: {},
+
+                toolResults.push({
+                  tool: functionCallData.call.function_name,
+                  arguments: functionCallData.call.content ? JSON.parse(functionCallData.call.content) : {},
                   result: result.content
-                };
+                });
               }
-            });
-
-            // Create a tool call message
-            // const toolCall: ToolCall = {
-            //   id: message.call_id || '',
-            //   name: message.function_name || '',
-            //   arguments: message.content || '{}'
-            // };
-
-            return {
-              role: 'tool',
-              content: `Function ${message.function_name} was called`,
-              created_at: created_at,
-              streamingError: false,
-              tool_calls: [],
-              tool_results: toolResults.length > 0 ? toolResults : null
-            };
-          }
-        }
-
-        // For function call results that aren't part of a function call
-        else if (message.message_type === 'function_call_result') {
-          try {
-            let parsedContent;
-            try {
-              parsedContent = JSON.parse(message.content.replace(/'/g, '"'));
-            } catch {
-              parsedContent = message.content;
             }
-
-            return {
-              role: 'tool',
-              content: `Tool result`,
-              created_at: created_at,
-              streamingError: false,
-              tool_calls: [],
-              tool_results: [{
-                tool: 'unknown',
-                arguments: {},
-                result: parsedContent
-              }]
-            };
-          } catch {
-            return baseMessage;
           }
         }
 
-        // For user messages, return the base structure
-        return baseMessage;
-      });
+        // Clear pending function calls after attaching them
+        pendingFunctionCalls.length = 0;
 
-    // Remove any null/undefined messages
-    return processedMessages.filter(msg => msg !== null && msg !== undefined);
+        // Create the agent message with tool results
+        const agentMessage = {
+          ...baseMessage,
+          role: 'agent',
+          tool_calls: [],
+          tool_results: toolResults.length > 0 ? toolResults : null
+        };
+        processedMessages.push(agentMessage);
+      } else {
+        // For user messages, add them as is
+        processedMessages.push(baseMessage);
+      }
+    }
+
+    return processedMessages;
   }
 
   const getSession = useCallback(
@@ -267,174 +173,11 @@ const useSessionLoader = () => {
           sessionId
         )) as SessionResponse
 
-        // Handle new DB-based response format
         if (response && response.messages && Array.isArray(response.messages)) {
-        // const processedMessages = response.messages.filter(msg => msg.message_type !== "function_call").map((message): PlaygroundChatMessage => {
-        //   // Convert timestamp to Unix timestamp (seconds)
-        //   const created_at = new Date(message.timestamp).getTime() / 1000;
-
-        //   // Base message structure
-        //   const baseMessage: PlaygroundChatMessage = {
-        //     role: message.role as 'user' | 'agent' | 'system' | 'tool',
-        //     content: message.content || '',
-        //     created_at: created_at,
-        //     streamingError: false
-        //   };
-
-          //   // For agent messages, parse additional data from message_type or content
-          //   if (message.role === 'agent' || message.role === 'assistant') {
-          //     try {
-          //       // Try to parse potential JSON content for extra data
-          //       let extraData = {};
-          //       const toolCalls: ToolCall[] = [];
-          //       let toolResults = null;
-
-          //       // If message has function_name, it might be a tool call
-          //       // if (message.function_name) {
-          //       //   toolCalls.push({
-          //       //     id: message.call_id || '',
-          //       //     name: message.function_name,
-          //       //     arguments: message.content || '{}'
-          //       //   });
-          //       // }
-
-          //       // Try to extract extra_data from message content if it's JSON
-          //       if (message.message_type === 'extra_data' || message.message_type === 'reasoning') {
-          //         try {
-          //           const parsedContent = JSON.parse(message.content);
-          //           if (parsedContent.reasoning_steps) {
-          //             extraData = {
-          //               ...extraData,
-          //               reasoning_steps: parsedContent.reasoning_steps
-          //             };
-          //           }
-          //           if (parsedContent.references) {
-          //             extraData = {
-          //               ...extraData,
-          //               references: parsedContent.references
-          //             };
-          //           }
-          //           if (parsedContent.reasoning_messages) {
-          //             extraData = {
-          //               ...extraData,
-          //               reasoning_messages: parsedContent.reasoning_messages
-          //             };
-          //           }
-          //         } catch {
-          //           // Not JSON or not containing expected fields, continue
-          //         }
-          //       }
-
-          //       // If there's tool results, parse them
-          //       if (message.message_type === 'function_call_result') {
-          //         try {
-          //           toolResults = message.content;
-          //         } catch {
-          //           toolResults = message.content;
-          //         }
-          //       }
-
-          //       // Add tool-related and extra data to agent messages
-          //       return {
-          //         ...baseMessage,
-          //         tool_calls: toolCalls.length > 0 ? toolCalls : [],
-          //         tool_results: toolResults,
-          //         extra_data: Object.keys(extraData).length > 0 ? extraData : undefined,
-          //         role: 'agent'
-          //       };
-          //     } catch {
-          //       return baseMessage;
-          //     }
-          //   }
-
-          //   // For user messages, return the base structure
-          //   return baseMessage;
-          // });
-
           const processedMessages = processMessagesFromDatabase(response.messages)
-          console.log({ processedMessages });
-
           setMessages(processedMessages);
           return processedMessages;
         }
-
-        // Handle legacy format (original code)
-        // else if (response && response.memory) {
-        //   const sessionHistory = response.memory.runs ?? response.memory.chats
-
-        //   if (sessionHistory && Array.isArray(sessionHistory)) {
-        //     const messagesForPlayground = sessionHistory.flatMap((run) => {
-        //       const filteredMessages: PlaygroundChatMessage[] = []
-
-        //       if (run.message) {
-        //         filteredMessages.push({
-        //           role: 'user',
-        //           content: run.message.content ?? '',
-        //           created_at: run.message.created_at
-        //         })
-        //       }
-
-        //       if (run.response) {
-        //         const toolCalls = [
-        //           ...(run.response.tools ?? []),
-        //           ...(run.response.extra_data?.reasoning_messages ?? []).reduce(
-        //             (acc: ToolCall[], msg: ReasoningMessage) => {
-        //               if (msg.role === 'tool') {
-        //                 acc.push({
-        //                   role: msg.role,
-        //                   content: msg.content,
-        //                   tool_call_id: msg.tool_call_id ?? '',
-        //                   tool_name: msg.tool_name ?? '',
-        //                   tool_args: msg.tool_args ?? {},
-        //                   tool_call_error: msg.tool_call_error ?? false,
-        //                   metrics: msg.metrics ?? { time: 0 },
-        //                   created_at:
-        //                     msg.created_at ?? Math.floor(Date.now() / 1000)
-        //                 })
-        //               }
-        //               return acc
-        //             },
-        //             []
-        //           )
-        //         ]
-
-        //         filteredMessages.push({
-        //           role: 'agent',
-        //           content: (run.response.content as string) ?? '',
-        //           tool_calls: toolCalls.length > 0 ? toolCalls : [],
-        //           extra_data: run.response.extra_data,
-        //           images: run.response.images,
-        //           videos: run.response.videos,
-        //           audio: run.response.audio,
-        //           response_audio: run.response.response_audio,
-        //           created_at: run.response.created_at,
-        //           tool_results: null
-        //         })
-        //       }
-        //       return filteredMessages
-        //     })
-
-        //     const processedMessages = messagesForPlayground.map(
-        //       (message: PlaygroundChatMessage) => {
-        //         if (Array.isArray(message.content)) {
-        //           const textContent = message.content
-        //             .filter((item: { type: string }) => item.type === 'text')
-        //             .map((item) => item.text)
-        //             .join(' ')
-
-        //           return {
-        //             ...message,
-        //             content: textContent
-        //           }
-        //         }
-        //         return message
-        //       }
-        //     )
-
-        //     setMessages(processedMessages)
-        //     return processedMessages
-        //   }
-        // }
       } catch (error) {
         console.error("Error fetching session:", error);
         return null

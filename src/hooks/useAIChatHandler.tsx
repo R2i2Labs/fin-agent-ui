@@ -132,39 +132,8 @@ const useAIChatHandler = () => {
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages]
           const lastMessage = newMessages[newMessages.length - 1]
-          console.log(lastMessage);
-
-
-          // if (lastMessage && lastMessage.role === 'agent') {
-          //   // Update content
-          //   lastMessage.content = typeof responseData.content === 'string'
-          //     ? responseData.content
-          //     : JSON.stringify(responseData.content)
-
-          //   // Update tool calls if present
-          //   if (responseData.tools && responseData.tools.length > 0) {
-          //     lastMessage.tool_calls = responseData.tools as ToolCall[]
-          //   }
-
-          //   // Update other properties
-          //   lastMessage.created_at = responseData.created_at ?? lastMessage.created_at
-          //   lastMessage.images = responseData.images
-          //   lastMessage.videos = responseData.videos
-          //   lastMessage.audio = responseData.audio
-          //   lastMessage.response_audio = responseData.response_audio
-
-          //   // Update extra data
-          //   if (responseData.extra_data) {
-          //     lastMessage.extra_data = {
-          //       reasoning_steps: responseData.extra_data.reasoning_steps,
-          //       references: responseData.extra_data.references
-          //     }
-          //   }
-          // }
-
           lastMessage.content = responseData.response
           lastMessage.tool_results = responseData.tool_results;
-
           return newMessages
         })
 
