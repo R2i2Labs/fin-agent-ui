@@ -13,8 +13,39 @@ interface MessageProps {
 }
 
 const AgentMessage = ({ message }: MessageProps) => {
-  const { streamingErrorMessage } = usePlaygroundStore()
-  let messageContent
+  const { streamingErrorMessage } = usePlaygroundStore();
+
+  // Function to render token usage if available
+  const renderTokenUsage = (tokenData: PlaygroundChatMessage["extra_data"]) => {
+    if (!tokenData) return null;
+
+    try {
+      const usage = typeof tokenData === 'string' ? JSON.parse(tokenData) : tokenData;
+
+      return (
+        <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+          <details>
+            <summary className="cursor-pointer hover:text-foreground">
+              Token usage
+            </summary>
+            <div className="pl-4 pt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+              <span>Input tokens:</span>
+              <span>{usage.input_tokens}</span>
+              <span>Output tokens:</span>
+              <span>{usage.output_tokens}</span>
+              <span>Total tokens:</span>
+              <span>{usage.total_tokens}</span>
+            </div>
+          </details>
+        </div>
+      );
+    } catch (e) {
+      console.error("Error parsing token usage data:", e);
+      return null;
+    }
+  };
+
+  let messageContent;
   if (message.streamingError) {
     messageContent = (
       <p className="text-destructive">
@@ -25,7 +56,7 @@ const AgentMessage = ({ message }: MessageProps) => {
           'Please try refreshing the page or try again later.'
         )}
       </p>
-    )
+    );
   } else if (message.content) {
     messageContent = (
       <div className="flex w-full flex-col gap-4">
@@ -39,15 +70,16 @@ const AgentMessage = ({ message }: MessageProps) => {
         {message.audio && message.audio.length > 0 && (
           <Audios audio={message.audio} />
         )}
+        {message.extra_data && renderTokenUsage(message.extra_data)}
       </div>
-    )
+    );
   } else if (message.response_audio) {
     if (!message.response_audio.transcript) {
       messageContent = (
         <div className="mt-2 flex items-start">
           <AgentThinkingLoader />
         </div>
-      )
+      );
     } else {
       messageContent = (
         <div className="flex w-full flex-col gap-4">
@@ -57,15 +89,16 @@ const AgentMessage = ({ message }: MessageProps) => {
           {message.response_audio.content && message.response_audio && (
             <Audios audio={[message.response_audio]} />
           )}
+          {message.extra_data && renderTokenUsage(message.extra_data)}
         </div>
-      )
+      );
     }
   } else {
     messageContent = (
       <div className="mt-2">
         <AgentThinkingLoader />
       </div>
-    )
+    );
   }
 
   return (
@@ -75,8 +108,8 @@ const AgentMessage = ({ message }: MessageProps) => {
       </div>
       {messageContent}
     </div>
-  )
-}
+  );
+};
 
 const UserMessage = memo(({ message }: MessageProps) => {
   return (

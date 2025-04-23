@@ -113,7 +113,8 @@ const useSessionLoader = () => {
         role: (message.role || 'system') as 'user' | 'agent' | 'system' | 'tool',
         content: processedContent,
         created_at: created_at,
-        streamingError: false
+        streamingError: false,
+        extra_data: message.extra_data
       };
 
       // For agent messages, attach any pending function call results

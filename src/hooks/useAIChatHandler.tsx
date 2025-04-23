@@ -153,6 +153,10 @@ const useAIChatHandler = () => {
             lastMessage.content = replaceImagePaths(responseData.response);
           }
 
+          if (responseData.extra_data) {
+            lastMessage.extra_data = JSON.parse(responseData.extra_data);
+          }
+
           lastMessage.tool_results = responseData.tool_results;
           return newMessages;
         });
