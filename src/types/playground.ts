@@ -112,7 +112,7 @@ export interface RunResponse {
   session_id?: string
   created_at: number
   tools?: ToolCall[]
-  extra_data?: string
+  extra_data?: PlaygroundAgentExtraData
   images?: ImageData[]
   videos?: VideoData[]
   audio?: AudioData[]
@@ -153,15 +153,15 @@ export interface PlaygroundChatMessage {
     reasoning_steps?: ReasoningSteps[]
     reasoning_messages?: ReasoningMessage[]
     references?: ReferenceData[],
-    input_tokens: number,
-    input_tokens_details: {
+    input_tokens?: number,
+    input_tokens_details?: {
       cached_tokens: number
     },
-    output_tokens: number,
-    output_tokens_details: {
+    output_tokens?: number,
+    output_tokens_details?: {
       reasoning_tokens: number
     },
-    total_tokens: number
+    total_tokens?: number
   }
   images?: ImageData[]
   videos?: VideoData[]

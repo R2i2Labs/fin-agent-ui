@@ -154,7 +154,7 @@ const useAIChatHandler = () => {
           }
 
           if (responseData.extra_data) {
-            lastMessage.extra_data = JSON.parse(responseData.extra_data);
+            lastMessage.extra_data = JSON.parse(JSON.stringify(responseData.extra_data));
           }
 
           lastMessage.tool_results = responseData.tool_results;
