@@ -55,31 +55,47 @@ const useSessionLoader = () => {
     [selectedEndpoint, setSessionsData, setIsSessionsLoading]
   )
 
-  function processMessagesFromDatabase(messages: any[]): any[] {
-    // Group function calls with their outputs
+  function processMessagesFromDatabase(messages: any[], selectedEndpoint: string): any[] {
+    const BACKEND_URL = selectedEndpoint + '/static'; // The base URL for your backend assets
+
+    // Helper function to replace image paths in markdown content
+    function replaceImagePaths(content: string): string {
+      if (!content) return content;
+
+      // Regex to match markdown image syntax: ![alt text](path/to/image.png)
+      // Capturing groups: ![($1)]($2)
+      return content.replace(/!\[(.*?)\]\((generated_assets\/.*?\.(?:png|jpg|jpeg|gif|svg))\)/gi,
+        (match, altText, imagePath) => {
+          // Extract just the parts we need - the directory number and filename
+          const parts = imagePath.match(/generated_assets\/(\d+)\/(.+)/);
+          if (!parts) return match;
+
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const [_, dirNum, filename] = parts;
+          return `![${altText}](${BACKEND_URL}/${dirNum}/${filename})`;
+        }
+      );
+    }
+
+  // Rest of your existing code...
     const functionCallMap = new Map();
-    // Track which function calls should be attached to which NEXT agent message
     const pendingFunctionCalls = [];
     const processedMessages = [];
 
     for (let i = 0; i < messages.length; i++) {
       const message = messages[i];
-
-    // Process function calls and their outputs
+      // Process function calls and their outputs
       if (message.message_type === 'function_call') {
-        // Store the function call
         functionCallMap.set(message.call_id, {
           call: message,
           results: []
         });
-        // Add to pending list to be attached to the next agent message
         pendingFunctionCalls.push(message.call_id);
         continue;
       }
 
       if (message.message_type === 'function_call_output') {
         if (functionCallMap.has(message.call_id)) {
-          // Add the output to the corresponding function call
           const functionCallData = functionCallMap.get(message.call_id);
           functionCallData.results.push(message);
         }
@@ -89,10 +105,13 @@ const useSessionLoader = () => {
       // Process agent and user messages
       const created_at = new Date(message.timestamp).getTime() / 1000;
 
+      // Apply path replacement to message content
+      const processedContent = replaceImagePaths(message.content || '');
+
       // Base message structure
       const baseMessage = {
         role: (message.role || 'system') as 'user' | 'agent' | 'system' | 'tool',
-        content: message.content || '',
+        content: processedContent,
         created_at: created_at,
         streamingError: false
       };
@@ -113,15 +132,16 @@ const useSessionLoader = () => {
                   parsedContent = JSON.parse(result.content.replace(/'/g, '"'));
                 } catch {
                   try {
-                    const jsObject = result.content
+                    const jsObject = result.content;
                     parsedContent = JSON.parse((jsObject));
                     if (parsedContent?.['result']) {
-                      parsedContent.result = JSON.parse(parsedContent.result)
+                      parsedContent.result = JSON.parse(parsedContent.result);
                     }
                   } catch {
                     parsedContent = result.content;
                   }
                 }
+
                 // Add to tool results
                 toolResults.push({
                   tool: functionCallData.call.function_name,
@@ -129,7 +149,6 @@ const useSessionLoader = () => {
                   result: parsedContent
                 });
               } catch {
-
                 toolResults.push({
                   tool: functionCallData.call.function_name,
                   arguments: functionCallData.call.content ? JSON.parse(functionCallData.call.content) : {},
@@ -156,7 +175,6 @@ const useSessionLoader = () => {
         processedMessages.push(baseMessage);
       }
     }
-
     return processedMessages;
   }
 
@@ -174,7 +192,7 @@ const useSessionLoader = () => {
         )) as SessionResponse
 
         if (response && response.messages && Array.isArray(response.messages)) {
-          const processedMessages = processMessagesFromDatabase(response.messages)
+          const processedMessages = processMessagesFromDatabase(response.messages, selectedEndpoint)
           setMessages(processedMessages);
           return processedMessages;
         }

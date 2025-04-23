@@ -128,14 +128,34 @@ const useAIChatHandler = () => {
           }
         }
 
-        // Update the agent message with the complete response
         setMessages((prevMessages) => {
-          const newMessages = [...prevMessages]
-          const lastMessage = newMessages[newMessages.length - 1]
-          lastMessage.content = responseData.response
+          const BACKEND_URL = selectedEndpoint + '/static';
+          function replaceImagePaths(content: string): string {
+            if (!content) return content;
+
+            return content.replace(/!\[(.*?)\]\((generated_assets\/.*?\.(?:png|jpg|jpeg|gif|svg))\)/gi,
+              (match, altText, imagePath) => {
+                const parts = imagePath.match(/generated_assets\/(\d+)\/(.+)/);
+                if (!parts) return match;
+
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const [_, dirNum, filename] = parts;
+                return `![${altText}](${BACKEND_URL}/${dirNum}/${filename})`;
+              }
+            );
+          }
+
+          const newMessages = [...prevMessages];
+          const lastMessage = newMessages[newMessages.length - 1];
+
+          // Process the content to replace image paths
+          if (responseData.response) {
+            lastMessage.content = replaceImagePaths(responseData.response);
+          }
+
           lastMessage.tool_results = responseData.tool_results;
-          return newMessages
-        })
+          return newMessages;
+        });
 
       } catch (error) {
         updateMessagesWithErrorState()
