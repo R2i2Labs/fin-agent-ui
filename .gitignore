@@ -40,3 +40,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+node_modules
+out
+dist
+myenv
+
+myenv
+__pycache__
+temp
+generated_scripts
+agent_memory.db
+generated_assets
