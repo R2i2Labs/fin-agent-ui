@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Loading Application</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      text-align: center;
+      padding: 2em;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 80%;
+    }
+    h1 {
+      color: #e53e3e;
+    }
+    code {
+      background-color: #f1f1f1;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .troubleshooting {
+      text-align: left;
+      margin-top: 2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Error Loading Application</h1>
+    <p>The application could not find the required files to start properly.</p>
+    
+    <div class="troubleshooting">
+      <h2>Troubleshooting Steps:</h2>
+      <ol>
+        <li>Make sure you have run <code>npm run export</code> to generate the static files.</li>
+        <li>Verify that the <code>out</code> directory exists and contains <code>index.html</code>.</li>
+        <li>Check that your file paths in the Electron configuration are correct.</li>
+        <li>Ensure that the Next.js export was successful.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

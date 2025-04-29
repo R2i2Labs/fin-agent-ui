@@ -1,0 +1,56 @@
+{
+  "name": "nextjs-electron-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "description": "An AI-powered financial assistant desktop app",
+  "author": "R2I2 Technologies",
+  "scripts": {
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm run export\" \"wait-on out/index.html && electron .\"",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "concurrently": "^7.0.0",
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^7.0.1"
+  },
+  "dependencies": {
+    "axios": "^1.x"
+  },
+  "build": {
+    "appId": "com.example.financeagent",
+    "productName": "FinanceAgent",
+    "files": [
+      "main.js",
+      "preload.js",
+      "out/**/*",
+      "backend/**/*",
+      "!**/*.ts",
+      "!node_modules/electron*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend"
+      },
+      {
+        "from": "out",
+        "to": "out"
+      }
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Finance"
+    }
+  }
+}
